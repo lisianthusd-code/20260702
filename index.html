@@ -1,0 +1,1289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Financial News Command Center</title>
+
+  <!-- Google Analytics placeholder: replace G-XXXXXXXXXX with your real Measurement ID. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://s3.tradingview.com/tv.js"></script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c1017;
+      --panel: #121925;
+      --panel-2: #172131;
+      --line: #273142;
+      --muted: #8d9caf;
+      --text: #edf2f8;
+      --good: #24c284;
+      --bad: #ff5c7a;
+      --warn: #f4b740;
+      --accent: #4ba3ff;
+      --accent-2: #78d7c7;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .34);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 16% 10%, rgba(86, 137, 204, .16), transparent 34%),
+        radial-gradient(circle at 86% 4%, rgba(111, 206, 185, .10), transparent 30%),
+        radial-gradient(circle at 52% 92%, rgba(244, 183, 64, .07), transparent 38%),
+        linear-gradient(180deg, #101622 0%, #0c1017 54%, #0b0f16 100%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    button, input, textarea, select { font: inherit; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 264px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      border-right: 1px solid var(--line);
+      background: rgba(12, 16, 23, .84);
+      backdrop-filter: blur(18px);
+      padding: 24px 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #071019;
+      font-weight: 900;
+    }
+
+    .brand strong { display: block; font-size: 15px; letter-spacing: 0; }
+    .brand span { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+
+    nav {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 26px;
+    }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 10px 12px;
+      border-radius: 7px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid transparent;
+    }
+
+    nav a:hover, nav a.active {
+      color: var(--text);
+      background: rgba(255, 255, 255, .045);
+      border-color: var(--line);
+    }
+
+    .source-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: rgba(255, 255, 255, .035);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    main {
+      min-width: 0;
+      padding: 22px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 36px);
+      letter-spacing: 0;
+    }
+
+    .subhead {
+      color: var(--muted);
+      margin: 7px 0 0;
+      font-size: 14px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .04);
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--good);
+      box-shadow: 0 0 16px var(--good);
+    }
+
+    .ticker {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #0f1621;
+      margin-bottom: 18px;
+    }
+
+    .ticker-track {
+      display: flex;
+      gap: 22px;
+      width: max-content;
+      padding: 11px 0;
+      animation: slide 42s linear infinite;
+    }
+
+    .ticker-item {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .ticker-item strong { color: var(--text); }
+
+    @keyframes slide {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(18, 25, 37, .94);
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .panel-head span, .small {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .content { padding: 16px; }
+
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .metric {
+      padding: 16px;
+      min-height: 130px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .metric strong {
+      font-size: 27px;
+      letter-spacing: 0;
+    }
+
+    .delta {
+      color: var(--good);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .delta.down { color: var(--bad); }
+
+    .markets {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .market-row {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .03);
+    }
+
+    .market-row div {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .market-row strong { font-size: 18px; }
+    .market-row span { color: var(--muted); font-size: 12px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, .07);
+      text-align: right;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    th:first-child, td:first-child,
+    th:nth-child(2), td:nth-child(2) { text-align: left; }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .rank {
+      display: inline-grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(75, 163, 255, .14);
+      color: #cfe7ff;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .chart-wrap {
+      height: 330px;
+      position: relative;
+    }
+
+    .tv-wrap {
+      height: 420px;
+      overflow: hidden;
+    }
+
+    .news-list {
+      display: grid;
+      gap: 11px;
+      max-height: 425px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .news-card {
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: rgba(255, 255, 255, .032);
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .news-card strong {
+      color: var(--text);
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .news-card:hover {
+      border-color: rgba(75, 163, 255, .55);
+      background: rgba(75, 163, 255, .07);
+      transform: translateY(-1px);
+    }
+
+    .news-card:hover strong { color: var(--accent); }
+
+    .news-card p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #0e1520;
+      color: var(--text);
+      border-radius: 7px;
+      padding: 10px 11px;
+      outline: none;
+    }
+
+    textarea { min-height: 96px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: var(--panel-2);
+      border-radius: 7px;
+      padding: 10px 13px;
+      cursor: pointer;
+      min-height: 38px;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #227de3, #1cae98);
+      border-color: transparent;
+      color: #f8fdff;
+      font-weight: 800;
+    }
+
+    button:hover { filter: brightness(1.08); }
+
+    .comments {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .comment {
+      border-left: 3px solid var(--accent);
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, .035);
+      border-radius: 0 7px 7px 0;
+    }
+
+    .comment strong { font-size: 13px; }
+    .comment span { color: var(--muted); font-size: 12px; margin-left: 6px; }
+    .comment p { margin: 7px 0 0; color: #dbe4ef; font-size: 13px; line-height: 1.45; }
+
+    .community-tabs,
+    .market-tabs {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .community-tab,
+    .market-tab {
+      min-height: 34px;
+      padding: 8px 14px;
+      border-radius: 7px;
+      color: var(--muted);
+      background: transparent;
+      border-color: transparent;
+    }
+
+    .community-tab:hover,
+    .community-tab:focus-visible,
+    .market-tab:hover,
+    .market-tab:focus-visible {
+      color: var(--text);
+      background: rgba(255, 255, 255, .06);
+      outline: 0;
+      box-shadow: 0 0 0 2px rgba(75, 163, 255, .24);
+    }
+
+    .community-tab.active,
+    .market-tab.active {
+      color: #08121d;
+      background: linear-gradient(135deg, #e9f4ff, #b8eee4);
+      border-color: transparent;
+      font-weight: 800;
+    }
+
+    .community-panel[hidden] { display: none; }
+
+    .community-panel {
+      margin-top: 14px;
+    }
+
+    .plan-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .plan-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      background: rgba(255, 255, 255, .035);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, .2);
+    }
+
+    .plan-card h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .plan-price {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      min-height: 44px;
+      margin: 8px 0 10px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .plan-price strong {
+      font-size: 30px;
+      letter-spacing: 0;
+      line-height: 1;
+    }
+
+    .plan-price span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .plan-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .payment-status {
+      border: 1px dashed #3a4b63;
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .025);
+      line-height: 1.5;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; }
+      aside {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .span-3, .span-4, .span-5, .span-6, .span-7, .span-8 { grid-column: span 12; }
+    }
+
+    @media (max-width: 680px) {
+      main { padding: 14px; }
+      header { align-items: flex-start; flex-direction: column; }
+      .header-actions { justify-content: flex-start; }
+      nav { grid-template-columns: 1fr; }
+      .markets, .split, .plan-grid { grid-template-columns: 1fr; }
+      .chart-wrap, .tv-wrap { height: 320px; }
+      th, td { padding: 9px 5px; font-size: 12px; }
+      .hide-sm { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand">
+        <div class="logo">FN</div>
+        <div>
+          <strong>Financial News</strong>
+          <span>Daily workspace dashboard</span>
+        </div>
+      </div>
+      <nav aria-label="Dashboard sections">
+        <a class="active" href="#overview">Overview <span>Live</span></a>
+        <a href="#markets">Markets <span>Global</span></a>
+        <a href="#rankings">Rankings <span>Top 10</span></a>
+        <a href="#news">News <span>Issues</span></a>
+        <a href="#community">Community <span>Local</span></a>
+        <a href="#payments">Payments <span>Mock</span></a>
+      </nav>
+      <div class="source-box">
+        Public widgets are loaded from TradingView. News attempts to load from GDELT and falls back to local mock headlines. Ranking tables and charts refresh in-browser every few seconds.
+      </div>
+    </aside>
+
+    <main>
+      <header>
+        <div>
+          <h1>Financial News Command Center</h1>
+          <p class="subhead">Economy, social issues, stock rankings, charts, comments, and payment integration scaffolding.</p>
+        </div>
+        <div class="header-actions">
+          <span class="chip"><span class="dot"></span><span id="clock">Syncing</span></span>
+          <span class="chip" id="dataHealth">Data: initializing</span>
+        </div>
+      </header>
+
+      <section class="ticker" aria-label="Real-time issue ticker">
+        <div class="ticker-track" id="issueTicker"></div>
+      </section>
+
+      <section id="overview" class="grid">
+        <article class="panel metric span-3">
+          <label>Market Pulse</label>
+          <strong id="marketPulse">68.4</strong>
+          <span class="delta" id="marketPulseDelta">+2.1 intraday</span>
+        </article>
+        <article class="panel metric span-3">
+          <label>Risk Tone</label>
+          <strong id="riskTone">Neutral</strong>
+          <span class="delta" id="riskToneDelta">credit spreads stable</span>
+        </article>
+        <article class="panel metric span-3">
+          <label>News Velocity</label>
+          <strong id="newsVelocity">142</strong>
+          <span class="delta" id="newsVelocityDelta">+18 headlines/hour</span>
+        </article>
+        <article class="panel metric span-3">
+          <label>Community</label>
+          <strong id="communityCount">0</strong>
+          <span class="delta">local discussion posts</span>
+        </article>
+      </section>
+
+      <section id="markets" class="grid" style="margin-top:16px">
+        <article class="panel span-5">
+          <div class="panel-head">
+            <h2 id="marketPanelTitle">Global Market Status</h2>
+            <div class="market-tabs" role="tablist" aria-label="Market view">
+              <button class="market-tab active" type="button" role="tab" aria-selected="true" data-market-tab="global">GLOBAL</button>
+              <button class="market-tab" type="button" role="tab" aria-selected="false" data-market-tab="korea">KOREA</button>
+            </div>
+          </div>
+          <div class="content">
+            <div class="markets" id="marketOverview"></div>
+          </div>
+        </article>
+
+        <article class="panel span-7">
+          <div class="panel-head">
+            <h2 id="tradingViewTitle">Live Global Chart</h2>
+            <span id="tradingViewMeta">TradingView · NASDAQ:NVDA</span>
+          </div>
+          <div class="tv-wrap" id="tradingview-widget"></div>
+        </article>
+      </section>
+
+      <section id="rankings" class="grid" style="margin-top:16px">
+        <article class="panel span-7">
+          <div class="panel-head">
+            <h2 id="rankingTitle">Global Stock Ranking</h2>
+            <span id="rankingUpdated">Refreshing</span>
+          </div>
+          <div class="content">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Symbol</th>
+                  <th>Price</th>
+                  <th>Change</th>
+                  <th class="hide-sm">Volume</th>
+                </tr>
+              </thead>
+              <tbody id="rankingBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel span-5">
+          <div class="panel-head">
+            <h2 id="chartTitle">Interactive Global Price Chart</h2>
+            <select id="chartSymbol" aria-label="Chart symbol selector"></select>
+          </div>
+          <div class="content">
+            <div class="chart-wrap">
+              <canvas id="priceChart" aria-label="Price chart"></canvas>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid" style="margin-top:16px">
+        <article id="news" class="panel span-7">
+          <div class="panel-head">
+            <h2 id="newsTitle">Global Economy and Market News</h2>
+            <span id="newsSource">GDELT + fallback</span>
+          </div>
+          <div class="content">
+            <div class="news-list" id="newsList"></div>
+          </div>
+        </article>
+
+        <article id="payments" class="panel span-5">
+          <div class="panel-head">
+            <h2>Payment Integration Mock</h2>
+            <span>Toss Payments / Portone</span>
+          </div>
+          <div class="content form-grid">
+            <div class="split">
+              <input id="customerName" placeholder="Customer name" value="Dashboard Member">
+              <input id="paymentAmount" type="number" min="1000" step="1000" value="9900" aria-label="Payment amount">
+            </div>
+            <select id="paymentProvider" aria-label="Payment provider">
+              <option value="Toss Payments">Toss Payments mock</option>
+              <option value="Portone">Portone API mock</option>
+            </select>
+            <div class="button-row">
+              <button class="primary" id="startPayment">Create Test Payment</button>
+              <button id="resetPayment">Reset</button>
+            </div>
+            <div class="payment-status" id="paymentStatus">
+              Ready. Production setup requires provider SDKs, client keys, order IDs from a backend, and server-side payment confirmation.
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section id="community" class="grid" style="margin-top:16px">
+        <article class="panel span-12">
+          <div class="panel-head">
+            <h2>Community Discussion</h2>
+            <div class="community-tabs" role="tablist" aria-label="Community market view">
+              <button class="community-tab" type="button" id="community-tab-global" role="tab" aria-controls="community-panel-global" aria-selected="false" data-market-tab="global">Global</button>
+              <button class="community-tab active" type="button" id="community-tab-korea" role="tab" aria-controls="community-panel-korea" aria-selected="true" data-market-tab="korea">Korea</button>
+            </div>
+          </div>
+          <div class="content">
+            <div class="community-panel" id="community-panel-global" role="tabpanel" aria-labelledby="community-tab-global" data-market="global" hidden aria-hidden="true">
+              <span class="small">Global membership options</span>
+              <div class="plan-grid">
+                <article class="plan-card">
+                  <h3>Starter</h3>
+                  <div class="plan-price" aria-label="29 dollars per month"><strong>$29</strong><span>/ month</span></div>
+                  <p>Global watchlists, public market issue feed, and weekly community brief.</p>
+                </article>
+                <article class="plan-card">
+                  <h3>Pro</h3>
+                  <div class="plan-price" aria-label="49 dollars per month"><strong>$49</strong><span>/ month</span></div>
+                  <p>Real-time alert room, sector dashboards, and advanced discussion filters.</p>
+                </article>
+                <article class="plan-card">
+                  <h3>Desk</h3>
+                  <div class="plan-price" aria-label="99 dollars per month"><strong>$99</strong><span>/ month</span></div>
+                  <p>Team-ready market notes, priority signals, and private analyst threads.</p>
+                </article>
+              </div>
+            </div>
+
+            <div class="community-panel" id="community-panel-korea" role="tabpanel" aria-labelledby="community-tab-korea" data-market="korea" aria-hidden="false">
+              <span class="small">Korea membership options</span>
+              <div class="plan-grid">
+                <article class="plan-card">
+                  <h3>스타터</h3>
+                  <div class="plan-price" aria-label="월 2만 9천 원"><strong>29,000원</strong><span>/ 월</span></div>
+                  <p>국내 주요 종목 관심 목록, 이슈 피드, 주간 커뮤니티 브리프를 제공합니다.</p>
+                </article>
+                <article class="plan-card">
+                  <h3>프로</h3>
+                  <div class="plan-price" aria-label="월 4만 9천 원"><strong>49,000원</strong><span>/ 월</span></div>
+                  <p>실시간 알림룸, 섹터 대시보드, 고급 토론 필터를 사용할 수 있습니다.</p>
+                </article>
+                <article class="plan-card">
+                  <h3>데스크</h3>
+                  <div class="plan-price" aria-label="월 9만 9천 원"><strong>99,000원</strong><span>/ 월</span></div>
+                  <p>팀 단위 시장 노트, 우선 신호, 비공개 애널리스트 스레드를 지원합니다.</p>
+                </article>
+              </div>
+            </div>
+
+            <form class="form-grid" id="commentForm">
+              <div class="split">
+                <input id="commentName" maxlength="32" placeholder="Name" required>
+                <select id="commentTopic" aria-label="Comment topic">
+                  <option>Markets</option>
+                  <option>Economy</option>
+                  <option>Policy</option>
+                  <option>Watchlist</option>
+                </select>
+              </div>
+              <textarea id="commentBody" maxlength="420" placeholder="Share a market note or community insight" required></textarea>
+              <div class="button-row">
+                <button class="primary" type="submit">Post Comment</button>
+                <button type="button" id="clearComments">Clear Local Comments</button>
+              </div>
+            </form>
+            <div class="comments" id="comments"></div>
+          </div>
+        </article>
+      </section>
+
+      <div class="status-line">
+        <span>Workspace: D:/_..Coding/2026-07-02_Project/index.html</span>
+        <span id="lastRefresh">Last refresh pending</span>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const globalMarketItems = [
+      { name: 'S&P 500', value: 6211.6, change: .42, unit: 'Index' },
+      { name: 'Nasdaq', value: 20482.1, change: .68, unit: 'Index' },
+      { name: 'Dow Jones', value: 44419.8, change: -.14, unit: 'Index' },
+      { name: 'Russell 2000', value: 2264.3, change: .21, unit: 'Index' },
+      { name: 'US 10Y Yield', value: 4.28, change: -.04, unit: '%' },
+      { name: 'WTI Crude', value: 81.42, change: .36, unit: 'USD' }
+    ];
+
+    const koreaMarketItems = [
+      { name: 'KOSPI', value: 2824.5, change: .87, unit: 'KRX' },
+      { name: 'KOSDAQ', value: 809.7, change: -.22, unit: 'KRX' },
+      { name: 'KRX 300', value: 1712.8, change: .45, unit: 'KRX' },
+      { name: 'USD/KRW', value: 1368.4, change: -.31, unit: 'KRW' },
+      { name: 'Korea 3Y Bond', value: 3.18, change: .03, unit: '%' },
+      { name: 'KOSPI Volume', value: 483000000, change: .74, unit: 'Shares' }
+    ];
+
+    const globalStockItems = [
+      { symbol: 'NVDA', tvSymbol: 'NASDAQ:NVDA', name: 'NVIDIA', price: 154.82, change: 2.6, volume: 62241000, currency: 'USD' },
+      { symbol: 'AAPL', tvSymbol: 'NASDAQ:AAPL', name: 'Apple', price: 213.41, change: .9, volume: 48933000, currency: 'USD' },
+      { symbol: 'MSFT', tvSymbol: 'NASDAQ:MSFT', name: 'Microsoft', price: 497.16, change: 1.1, volume: 27512000, currency: 'USD' },
+      { symbol: 'TSLA', tvSymbol: 'NASDAQ:TSLA', name: 'Tesla', price: 318.74, change: -1.8, volume: 73402000, currency: 'USD' },
+      { symbol: 'AMZN', tvSymbol: 'NASDAQ:AMZN', name: 'Amazon', price: 224.05, change: .7, volume: 36187000, currency: 'USD' },
+      { symbol: 'META', tvSymbol: 'NASDAQ:META', name: 'Meta', price: 684.21, change: 1.5, volume: 14670000, currency: 'USD' },
+      { symbol: 'GOOGL', tvSymbol: 'NASDAQ:GOOGL', name: 'Alphabet', price: 188.42, change: -0.3, volume: 20950000, currency: 'USD' },
+      { symbol: 'JPM', tvSymbol: 'NYSE:JPM', name: 'JPMorgan Chase', price: 282.65, change: .4, volume: 11820000, currency: 'USD' },
+      { symbol: 'V', tvSymbol: 'NYSE:V', name: 'Visa', price: 347.32, change: .6, volume: 7640000, currency: 'USD' },
+      { symbol: 'UNH', tvSymbol: 'NYSE:UNH', name: 'UnitedHealth', price: 321.74, change: -1.1, volume: 6100000, currency: 'USD' }
+    ];
+
+    const koreaStockItems = [
+      { symbol: '005930.KS', tvSymbol: 'KRX:005930', name: '삼성전자', price: 78200, change: 1.4, volume: 19320000, currency: 'KRW' },
+      { symbol: '000660.KS', tvSymbol: 'KRX:000660', name: 'SK하이닉스', price: 236500, change: 3.2, volume: 5190000, currency: 'KRW' },
+      { symbol: '005380.KS', tvSymbol: 'KRX:005380', name: '현대차', price: 267000, change: .8, volume: 930000, currency: 'KRW' },
+      { symbol: '035420.KS', tvSymbol: 'KRX:035420', name: 'NAVER', price: 189400, change: -0.5, volume: 1180000, currency: 'KRW' },
+      { symbol: '035720.KS', tvSymbol: 'KRX:035720', name: '카카오', price: 48250, change: .4, volume: 2710000, currency: 'KRW' },
+      { symbol: '373220.KS', tvSymbol: 'KRX:373220', name: 'LG에너지솔루션', price: 367500, change: 1.1, volume: 780000, currency: 'KRW' },
+      { symbol: '068270.KS', tvSymbol: 'KRX:068270', name: '셀트리온', price: 184200, change: -.7, volume: 690000, currency: 'KRW' },
+      { symbol: '012450.KS', tvSymbol: 'KRX:012450', name: '한화에어로스페이스', price: 248000, change: 2.0, volume: 830000, currency: 'KRW' }
+    ];
+
+    const globalNewsItems = [
+      { category: 'Global economy', title: 'Reuters global markets coverage', summary: 'Rates, equities, commodities, and policy headlines from global desks.', url: 'https://www.reuters.com/markets/' },
+      { category: 'US stocks', title: 'MarketWatch latest market news', summary: 'US equity movers, earnings, and sector trends.', url: 'https://www.marketwatch.com/markets' },
+      { category: 'Central banks', title: 'Bloomberg markets news', summary: 'Macro policy, bond markets, and global risk appetite.', url: 'https://www.bloomberg.com/markets' },
+      { category: 'Technology', title: 'CNBC technology market coverage', summary: 'AI, chips, software, and mega-cap technology updates.', url: 'https://www.cnbc.com/technology/' }
+    ];
+
+    const koreaNewsItems = [
+      { category: '한국 경제', title: '한국 경제 뉴스 검색', summary: '한국 경제, 정책, 성장률, 소비 관련 최신 기사 검색.', url: 'https://www.google.com/search?tbm=nws&q=%ED%95%9C%EA%B5%AD+%EA%B2%BD%EC%A0%9C+%EB%89%B4%EC%8A%A4' },
+      { category: '코스피', title: '코스피 뉴스 검색', summary: 'KOSPI 지수, 수급, 기관/외국인 동향 기사 검색.', url: 'https://www.google.com/search?tbm=nws&q=%EC%BD%94%EC%8A%A4%ED%94%BC+%EB%89%B4%EC%8A%A4' },
+      { category: '반도체', title: '삼성전자 및 반도체 뉴스 검색', summary: '삼성전자, SK하이닉스, 메모리 업황 관련 기사 검색.', url: 'https://www.google.com/search?tbm=nws&q=%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90+SK%ED%95%98%EC%9D%B4%EB%8B%89%EC%8A%A4+%EB%B0%98%EB%8F%84%EC%B2%B4+%EB%89%B4%EC%8A%A4' },
+      { category: '환율', title: '원달러 환율 뉴스 검색', summary: 'USD/KRW 환율, 수출주, 외환시장 이슈 검색.', url: 'https://www.google.com/search?tbm=nws&q=%EC%9B%90%EB%8B%AC%EB%9F%AC+%ED%99%98%EC%9C%A8+%EB%89%B4%EC%8A%A4' },
+      { category: '부동산/금리', title: '한국 금리와 부동산 뉴스 검색', summary: '기준금리, 주택시장, 가계부채 관련 기사 검색.', url: 'https://www.google.com/search?tbm=nws&q=%ED%95%9C%EA%B5%AD+%EA%B8%88%EB%A6%AC+%EB%B6%80%EB%8F%99%EC%82%B0+%EB%89%B4%EC%8A%A4' },
+      { category: '기업 실적', title: '한국 기업 실적 뉴스 검색', summary: '상장사 실적, 가이던스, 업종별 전망 기사 검색.', url: 'https://www.google.com/search?tbm=nws&q=%ED%95%9C%EA%B5%AD+%EA%B8%B0%EC%97%85+%EC%8B%A4%EC%A0%81+%EB%89%B4%EC%8A%A4' }
+    ];
+
+    const commentsKey = 'financial-news-dashboard-comments-v1';
+    let activeMarket = 'global';
+    let chart;
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat('en-US', { maximumFractionDigits: value > 1000 ? 0 : 2 }).format(value);
+    }
+
+    function getActiveStocks() {
+      return activeMarket === 'korea' ? koreaStockItems : globalStockItems;
+    }
+
+    function getActiveIndexes() {
+      return activeMarket === 'korea' ? koreaMarketItems : globalMarketItems;
+    }
+
+    function formatMarketValue(item) {
+      if (item.unit === 'USD') return '$' + formatNumber(item.value);
+      if (item.unit === 'KRW') return new Intl.NumberFormat('ko-KR').format(item.value) + '원';
+      if (item.unit === '%') return item.value.toFixed(2) + '%';
+      if (item.unit === 'Shares') return new Intl.NumberFormat('ko-KR', { notation: 'compact' }).format(item.value) + '주';
+      return formatNumber(item.value);
+    }
+
+    function formatStockPrice(stock) {
+      if (stock.currency === 'KRW') return new Intl.NumberFormat('ko-KR').format(stock.price) + '원';
+      return '$' + formatNumber(stock.price);
+    }
+
+    function randomWalk(value, volatility) {
+      return Math.max(.01, value * (1 + ((Math.random() - .5) * volatility)));
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleString([], {
+        month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      document.getElementById('lastRefresh').textContent = 'Last refresh ' + now.toLocaleTimeString();
+    }
+
+    function updateTicker() {
+      const fragments = activeMarket === 'korea'
+        ? [
+          ['한국 경제', '물가, 수출, 내수, 정책 모멘텀이 국내 증시의 핵심 변수입니다.'],
+          ['코스피', '외국인 수급과 반도체 대형주 흐름이 지수 방향을 좌우하고 있습니다.'],
+          ['반도체', '삼성전자와 SK하이닉스는 메모리 업황과 AI 서버 수요를 반영합니다.'],
+          ['환율', '원달러 환율 변동성이 수출주와 외국인 매매에 영향을 주고 있습니다.'],
+          ['금리', '국고채 금리와 부동산 금융 여건이 투자심리를 흔들고 있습니다.'],
+          ['실적', '자동차, 배터리, 플랫폼 기업의 분기 실적 전망이 재평가되고 있습니다.']
+        ]
+        : [
+          ['Macro', 'Fed minutes, US CPI, and dollar liquidity are the most watched desk notes.'],
+          ['Social', 'Housing affordability, household debt, and employment remain high-attention issues.'],
+          ['Equities', 'AI chips, software, banks, and mega-cap technology stocks are moving watchlists.'],
+          ['Rates', 'Treasury yields and credit spreads are shaping global risk appetite.'],
+          ['FX', 'Dollar strength and euro, yen, and sterling volatility are driving cross-asset flows.'],
+          ['Crypto', 'ETF flows and regulatory comments are feeding digital asset momentum.']
+        ];
+      const html = [...fragments, ...fragments].map(([label, text]) =>
+        `<span class="ticker-item"><strong>${label}</strong>${text}</span>`
+      ).join('');
+      document.getElementById('issueTicker').innerHTML = html;
+    }
+
+    function updateMetrics() {
+      const pulse = 55 + Math.random() * 35;
+      const velocity = 90 + Math.floor(Math.random() * 90);
+      const tones = ['Risk-on', 'Neutral', 'Selective', 'Defensive'];
+      document.getElementById('marketPulse').textContent = pulse.toFixed(1);
+      document.getElementById('marketPulseDelta').textContent = (pulse > 65 ? '+' : '-') + (Math.random() * 3).toFixed(1) + ' intraday';
+      document.getElementById('riskTone').textContent = tones[Math.floor(Math.random() * tones.length)];
+      document.getElementById('riskToneDelta').textContent = pulse > 70 ? 'growth leadership firm' : 'rotation remains uneven';
+      document.getElementById('newsVelocity').textContent = velocity;
+      document.getElementById('newsVelocityDelta').textContent = '+' + Math.floor(Math.random() * 24 + 8) + ' headlines/hour';
+    }
+
+    function updateMarketOverview() {
+      const container = document.getElementById('marketOverview');
+      container.innerHTML = getActiveIndexes().map(index => {
+        index.value = randomWalk(index.value, .003);
+        index.change += (Math.random() - .5) * .12;
+        const down = index.change < 0;
+        return `
+          <div class="market-row">
+            <div><span>${index.name}</span><strong>${formatMarketValue(index)}</strong></div>
+            <div><span>Session</span><b class="delta ${down ? 'down' : ''}">${down ? '' : '+'}${index.change.toFixed(2)}%</b></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateRankings() {
+      const stocks = getActiveStocks();
+      stocks.forEach(stock => {
+        stock.price = randomWalk(stock.price, stock.currency === 'KRW' ? .009 : .012);
+        stock.change += (Math.random() - .5) * .7;
+        stock.volume = Math.max(100000, Math.round(stock.volume * (1 + (Math.random() - .48) * .08)));
+      });
+
+      const leaders = [...stocks].sort((a, b) => b.change - a.change).slice(0, 10);
+      document.getElementById('rankingBody').innerHTML = leaders.map((stock, index) => `
+        <tr>
+          <td><span class="rank">${index + 1}</span></td>
+          <td><strong>${stock.symbol}</strong><br><span class="small">${stock.name}</span></td>
+          <td>${formatStockPrice(stock)}</td>
+          <td><span class="delta ${stock.change < 0 ? 'down' : ''}">${stock.change >= 0 ? '+' : ''}${stock.change.toFixed(2)}%</span></td>
+          <td class="hide-sm">${formatNumber(stock.volume)}</td>
+        </tr>
+      `).join('');
+      document.getElementById('rankingUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    }
+
+    function syncChartOptions() {
+      const select = document.getElementById('chartSymbol');
+      const previousValue = select.value;
+      select.innerHTML = '';
+      getActiveStocks().forEach(stock => {
+        const option = document.createElement('option');
+        option.value = stock.symbol;
+        option.textContent = stock.symbol + ' - ' + stock.name;
+        select.appendChild(option);
+      });
+      if ([...select.options].some(option => option.value === previousValue)) {
+        select.value = previousValue;
+      }
+    }
+
+    function buildChart() {
+      if (!window.Chart) {
+        document.querySelector('.chart-wrap').innerHTML = '<div class="small">Chart.js did not load. Check network access.</div>';
+        return;
+      }
+      const ctx = document.getElementById('priceChart');
+      const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+      const selected = getActiveStocks().find(item => item.symbol === document.getElementById('chartSymbol').value) || getActiveStocks()[0];
+      let base = selected.price;
+      const points = labels.map(() => {
+        base = randomWalk(base, .01);
+        return Number(base.toFixed(2));
+      });
+
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: selected.symbol + ' simulated intraday',
+            data: points,
+            borderColor: '#4ba3ff',
+            backgroundColor: 'rgba(75, 163, 255, .16)',
+            fill: true,
+            tension: .36,
+            pointRadius: 0,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { labels: { color: '#edf2f8', boxWidth: 10 } },
+            tooltip: { backgroundColor: '#111925', borderColor: '#273142', borderWidth: 1 }
+          },
+          scales: {
+            x: { ticks: { color: '#8d9caf', maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,.05)' } },
+            y: { ticks: { color: '#8d9caf' }, grid: { color: 'rgba(255,255,255,.05)' } }
+          }
+        }
+      });
+    }
+
+    function nudgeChart() {
+      if (!chart) return;
+      const dataset = chart.data.datasets[0].data;
+      const latest = randomWalk(dataset[dataset.length - 1], .006);
+      dataset.shift();
+      dataset.push(Number(latest.toFixed(2)));
+      chart.data.labels.shift();
+      chart.data.labels.push(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      chart.update('none');
+    }
+
+    async function loadNews() {
+      const newsList = document.getElementById('newsList');
+      const requestedMarket = activeMarket;
+      const fallbackItems = requestedMarket === 'korea' ? koreaNewsItems : globalNewsItems;
+      const renderNewsCards = items => {
+        if (requestedMarket !== activeMarket) return;
+        newsList.innerHTML = items.map(item => `
+          <a class="news-card" href="${item.url}" target="_blank" rel="noopener noreferrer">
+            <strong>${item.title}</strong>
+            <p>${item.category} · ${item.summary}</p>
+          </a>
+        `).join('');
+      };
+
+      if (requestedMarket === 'korea') {
+        renderNewsCards(koreaNewsItems);
+        document.getElementById('newsSource').textContent = 'Korea news search links';
+        return;
+      }
+
+      const gdeltUrl = 'https://api.gdeltproject.org/api/v2/doc/doc?query=(economy%20OR%20stocks%20OR%20inflation%20OR%20housing)%20sourcecountry:US&mode=artlist&format=json&maxrecords=10&sort=hybridrel';
+      try {
+        const response = await fetch(gdeltUrl, { cache: 'no-store' });
+        if (!response.ok) throw new Error('GDELT response failed');
+        const data = await response.json();
+        const articles = (data.articles || []).slice(0, 10);
+        if (!articles.length) throw new Error('No GDELT articles');
+        if (requestedMarket !== activeMarket) return;
+        newsList.innerHTML = articles.map(article => `
+          <a class="news-card" href="${article.url}" target="_blank" rel="noopener noreferrer">
+            <strong>${article.title}</strong>
+            <p>${article.domain || 'GDELT'} · ${article.seendate || 'recent'} · Live public news feed</p>
+          </a>
+        `).join('');
+        document.getElementById('newsSource').textContent = 'Live from GDELT';
+        document.getElementById('dataHealth').textContent = 'Data: public feeds active';
+      } catch (error) {
+        renderNewsCards(fallbackItems);
+        document.getElementById('newsSource').textContent = 'Curated external links';
+        document.getElementById('dataHealth').textContent = 'Data: widgets + local mock';
+      }
+    }
+
+    function renderComments() {
+      const comments = JSON.parse(localStorage.getItem(commentsKey) || '[]');
+      document.getElementById('communityCount').textContent = comments.length;
+      document.getElementById('comments').innerHTML = comments.length ? comments.map(comment => `
+        <article class="comment">
+          <strong>${escapeHtml(comment.name)}</strong><span>${escapeHtml(comment.topic)} · ${comment.time}</span>
+          <p>${escapeHtml(comment.body)}</p>
+        </article>
+      `).join('') : '<p class="small">No local comments yet.</p>';
+    }
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      }[char]));
+    }
+
+    function setupComments() {
+      document.getElementById('commentForm').addEventListener('submit', event => {
+        event.preventDefault();
+        const comments = JSON.parse(localStorage.getItem(commentsKey) || '[]');
+        comments.unshift({
+          name: document.getElementById('commentName').value.trim(),
+          topic: document.getElementById('commentTopic').value,
+          body: document.getElementById('commentBody').value.trim(),
+          time: new Date().toLocaleString()
+        });
+        localStorage.setItem(commentsKey, JSON.stringify(comments.slice(0, 30)));
+        event.target.reset();
+        renderComments();
+      });
+
+      document.getElementById('clearComments').addEventListener('click', () => {
+        localStorage.removeItem(commentsKey);
+        renderComments();
+      });
+    }
+
+    function resolveMarketFromHash() {
+      if (['#market-global', '#community-global'].includes(window.location.hash)) return 'global';
+      if (['#market-korea', '#community-korea', '#community'].includes(window.location.hash)) return 'korea';
+      return 'korea';
+    }
+
+    function setMarketView(market, shouldUpdateHash = false, hashScope = 'market') {
+      const normalizedMarket = market === 'global' ? 'global' : 'korea';
+      activeMarket = normalizedMarket;
+
+      document.querySelectorAll('[data-market-tab]').forEach(tab => {
+        const isActive = tab.dataset.marketTab === normalizedMarket;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', String(isActive));
+      });
+
+      document.querySelectorAll('.community-panel[data-market]').forEach(panel => {
+        const isActive = panel.dataset.market === normalizedMarket;
+        panel.hidden = !isActive;
+        panel.setAttribute('aria-hidden', String(!isActive));
+      });
+
+      document.getElementById('marketPanelTitle').textContent = normalizedMarket === 'korea' ? 'Korea Market Status' : 'Global Market Status';
+      document.getElementById('rankingTitle').textContent = normalizedMarket === 'korea' ? 'Korea Stock Ranking' : 'Global Stock Ranking';
+      document.getElementById('chartTitle').textContent = normalizedMarket === 'korea' ? 'Interactive Korea Price Chart' : 'Interactive Global Price Chart';
+      document.getElementById('newsTitle').textContent = normalizedMarket === 'korea' ? 'Korea Economy and Market News' : 'Global Economy and Market News';
+
+      updateTicker();
+      syncChartOptions();
+      updateMarketOverview();
+      updateRankings();
+      buildChart();
+      setupTradingView();
+      loadNews();
+
+      if (shouldUpdateHash) {
+        const prefix = hashScope === 'community' ? 'community' : 'market';
+        const nextHash = `#${prefix}-${normalizedMarket}`;
+        if (window.location.hash !== nextHash) {
+          history.pushState(null, '', nextHash);
+        }
+      }
+    }
+
+    function setupCommunityMarketTabs() {
+      setMarketView(resolveMarketFromHash());
+
+      document.querySelectorAll('[data-market-tab]').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const isCommunityTab = tab.classList.contains('community-tab');
+          setMarketView(tab.dataset.marketTab, true, isCommunityTab ? 'community' : 'market');
+        });
+      });
+
+      window.addEventListener('hashchange', () => {
+        if (['#community', '#community-global', '#community-korea', '#market-global', '#market-korea'].includes(window.location.hash)) {
+          setMarketView(resolveMarketFromHash());
+        }
+      });
+    }
+
+    function setupPayments() {
+      const status = document.getElementById('paymentStatus');
+      document.getElementById('startPayment').addEventListener('click', () => {
+        const provider = document.getElementById('paymentProvider').value;
+        const amount = Number(document.getElementById('paymentAmount').value || 0);
+        const customer = document.getElementById('customerName').value || 'Guest';
+        const orderId = 'ORDER-' + Date.now();
+        status.innerHTML = `
+          <strong>${provider} test payment created</strong><br>
+          Customer: ${escapeHtml(customer)}<br>
+          Amount: ${formatNumber(amount)} KRW<br>
+          Order ID: ${orderId}<br>
+          Mock state: waiting for redirect approval. Replace this block with the ${provider} browser SDK and confirm the payment from your backend.
+        `;
+      });
+
+      document.getElementById('resetPayment').addEventListener('click', () => {
+        status.textContent = 'Ready. Production setup requires provider SDKs, client keys, order IDs from a backend, and server-side payment confirmation.';
+      });
+    }
+
+    function setupTradingView() {
+      const selectedStock = getActiveStocks().find(item => item.symbol === document.getElementById('chartSymbol').value) || getActiveStocks()[0];
+      const container = document.getElementById('tradingview-widget');
+      document.getElementById('tradingViewTitle').textContent = activeMarket === 'korea' ? 'Live Korea Chart' : 'Live Global Chart';
+      document.getElementById('tradingViewMeta').textContent = 'TradingView · ' + selectedStock.tvSymbol;
+      container.innerHTML = '';
+
+      if (!window.TradingView) {
+        container.innerHTML = `<div class="content small">TradingView script did not load. <a href="https://www.tradingview.com/symbols/${selectedStock.tvSymbol.replace(':', '-')}/" target="_blank" rel="noopener noreferrer">Open ${selectedStock.name} chart</a>.</div>`;
+        return;
+      }
+      new TradingView.widget({
+        autosize: true,
+        symbol: selectedStock.tvSymbol,
+        interval: '15',
+        timezone: 'Etc/UTC',
+        theme: 'dark',
+        style: '1',
+        locale: 'en',
+        toolbar_bg: '#121925',
+        enable_publishing: false,
+        allow_symbol_change: true,
+        container_id: 'tradingview-widget',
+        studies: ['Volume@tv-basicstudies']
+      });
+    }
+
+    function boot() {
+      updateClock();
+      updateTicker();
+      updateMetrics();
+      updateMarketOverview();
+      updateRankings();
+      buildChart();
+      loadNews();
+      renderComments();
+      setupComments();
+      setupCommunityMarketTabs();
+      setupPayments();
+
+      document.getElementById('chartSymbol').addEventListener('change', () => {
+        buildChart();
+        setupTradingView();
+      });
+      setInterval(updateClock, 1000);
+      setInterval(updateMetrics, 5500);
+      setInterval(updateMarketOverview, 3500);
+      setInterval(updateRankings, 4500);
+      setInterval(nudgeChart, 2200);
+      setInterval(loadNews, 300000);
+    }
+
+    document.addEventListener('DOMContentLoaded', boot);
+  </script>
+</body>
+</html>
